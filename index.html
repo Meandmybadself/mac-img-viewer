@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Img Viewer</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <!-- Top toolbar: folder picker + sort/shuffle controls -->
+    <header id="toolbar">
+      <button id="open-folder">Open Folder…</button>
+      <select id="recent" title="Recently viewed folders">
+        <option value="" disabled selected>Recent…</option>
+      </select>
+      <span id="folder-path" class="muted"></span>
+      <span class="spacer"></span>
+      <span id="status" class="muted"></span>
+      <div class="controls">
+        <label>Sort
+          <select id="sort-key">
+            <option value="name">Name</option>
+            <option value="modified">Modified</option>
+          </select>
+        </label>
+        <button id="sort-dir" title="Toggle ascending/descending">↑ Asc</button>
+        <button id="shuffle" title="Shuffle (S)">Shuffle</button>
+        <label class="thumb-size">Size
+          <input id="thumb-size" type="range" min="96" max="320" step="16" value="176" />
+        </label>
+      </div>
+    </header>
+
+    <!-- Thumbnail grid (virtualized) -->
+    <main id="grid-view">
+      <div id="grid-scroller">
+        <div id="grid-canvas"></div>
+      </div>
+      <div id="typeahead" class="typeahead hidden"></div>
+      <div id="empty" class="empty">Open a folder to begin.</div>
+    </main>
+
+    <!-- Full media viewer (hidden until an item is opened) -->
+    <section id="viewer-view" class="hidden">
+      <div id="viewer-stage"></div>
+      <div id="viewer-info" class="viewer-info"></div>
+      <div id="viewer-help" class="viewer-help">
+        Esc back · ←/→ prev/next · +/− zoom · 0 fit · 9 fill · 1 actual · L loop · Space play
+      </div>
+    </section>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
