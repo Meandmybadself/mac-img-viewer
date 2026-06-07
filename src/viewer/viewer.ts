@@ -3,6 +3,8 @@ import { state } from "../state";
 import { assetUrl } from "../ipc";
 import { apply, setMode, zoomBy, type ZoomState } from "./zoom";
 
+const SLIDESHOW_MS = 10_000;
+
 export class Viewer {
   private view: HTMLElement;
   private stage: HTMLElement;
@@ -14,6 +16,15 @@ export class Viewer {
   private natH = 0;
   private z: ZoomState = { mode: "fit", scale: 1, tx: 0, ty: 0 };
   private loop = false;
+
+  // Navigation playlist: `order` holds indices into state.items; `pos` is the
+  // position within it. Sequential viewing uses the natural order; a shuffle
+  // slideshow uses a shuffled order and auto-advances on a timer.
+  private order: number[] = [];
+  private pos = 0;
+  private slideshow = false;
+  private paused = false;
+  private timer = 0;
 
   constructor(view: HTMLElement, stage: HTMLElement, info: HTMLElement, onClose: () => void) {
     this.view = view;
@@ -28,29 +39,82 @@ export class Viewer {
     return !this.view.classList.contains("hidden");
   }
 
+  /** Open a single item for normal (sequential) viewing. */
   open(index: number): void {
-    state.selected = index;
+    this.slideshow = false;
+    this.stopTimer();
+    this.order = state.items.map((_, i) => i);
+    this.pos = index;
     this.view.classList.remove("hidden");
-    this.load();
+    this.sync();
+  }
+
+  /** Start a looping shuffle slideshow over `order` (indices into state.items). */
+  startSlideshow(order: number[]): void {
+    if (order.length === 0) return;
+    this.slideshow = true;
+    this.paused = false;
+    this.order = order;
+    this.pos = 0;
+    this.view.classList.remove("hidden");
+    this.sync();
+    this.restartTimer();
   }
 
   close(): void {
+    this.stopTimer();
+    this.slideshow = false;
     this.teardownMedia();
     this.view.classList.add("hidden");
     this.onClose();
   }
 
   next(): void {
-    if (state.selected < state.items.length - 1) {
-      state.selected++;
-      this.load();
-    }
+    this.step(1);
   }
 
   prev(): void {
-    if (state.selected > 0) {
-      state.selected--;
-      this.load();
+    this.step(-1);
+  }
+
+  private step(delta: number): void {
+    const n = this.order.length;
+    if (n === 0) return;
+    const at = this.pos + delta;
+    if (at < 0 || at >= n) {
+      if (!this.slideshow) return; // clamp when not looping
+      this.pos = (at + n) % n; // wrap during the slideshow
+    } else {
+      this.pos = at;
+    }
+    this.sync();
+    if (this.slideshow && !this.paused) this.restartTimer();
+  }
+
+  /** Point state.selected at the current playlist position and load it. */
+  private sync(): void {
+    state.selected = this.order[this.pos];
+    this.load();
+  }
+
+  /** Pause/resume slideshow auto-advance (no-op outside a slideshow). */
+  toggleAutoAdvance(): void {
+    if (!this.slideshow) return;
+    this.paused = !this.paused;
+    if (this.paused) this.stopTimer();
+    else this.restartTimer();
+    this.updateInfo();
+  }
+
+  private restartTimer(): void {
+    this.stopTimer();
+    this.timer = window.setTimeout(() => this.step(1), SLIDESHOW_MS);
+  }
+
+  private stopTimer(): void {
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = 0;
     }
   }
 
@@ -135,13 +199,6 @@ export class Viewer {
     this.updateInfo();
   }
 
-  togglePlay(): void {
-    if (this.el instanceof HTMLVideoElement) {
-      if (this.el.paused) this.el.play().catch(() => {});
-      else this.el.pause();
-    }
-  }
-
   private enablePan(): void {
     let dragging = false;
     let lastX = 0;
@@ -173,6 +230,7 @@ export class Viewer {
     if (!item) return;
     const pct = Math.round(this.z.scale * 100);
     const loop = item.kind === "video" ? ` · loop ${this.loop ? "on" : "off"}` : "";
-    this.info.textContent = `${item.name}  (${state.selected + 1}/${state.items.length}) · ${pct}%${loop}`;
+    const show = this.slideshow ? ` · slideshow${this.paused ? " (paused)" : ""}` : "";
+    this.info.textContent = `${item.name}  (${this.pos + 1}/${this.order.length}) · ${pct}%${loop}${show}`;
   }
 }

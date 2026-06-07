@@ -35,6 +35,11 @@ export async function getThumbnail(path: string, max: number): Promise<string> {
   return url;
 }
 
+/** Reveal a file in Finder. */
+export function revealInFinder(path: string): Promise<void> {
+  return invoke("reveal_in_finder", { path });
+}
+
 export interface Settings {
   lastFolder: string | null;
   recentFolders: string[];

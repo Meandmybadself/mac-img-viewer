@@ -13,6 +13,7 @@ export class Grid {
   private scroller: HTMLElement;
   private canvas: HTMLElement;
   private onOpen: (index: number) => void;
+  private onContext: (x: number, y: number, index: number) => void;
 
   private cols = 1;
   private rowH = 0;
@@ -24,10 +25,16 @@ export class Grid {
   private frame = 0;
   private thumbs = new ThumbScheduler(Math.max(4, Math.min(8, navigator.hardwareConcurrency || 6)));
 
-  constructor(scroller: HTMLElement, canvas: HTMLElement, onOpen: (index: number) => void) {
+  constructor(
+    scroller: HTMLElement,
+    canvas: HTMLElement,
+    onOpen: (index: number) => void,
+    onContext: (x: number, y: number, index: number) => void
+  ) {
     this.scroller = scroller;
     this.canvas = canvas;
     this.onOpen = onOpen;
+    this.onContext = onContext;
 
     this.scroller.addEventListener("scroll", () => this.scheduleRender(), { passive: true });
     new ResizeObserver(() => this.relayout()).observe(this.scroller);
@@ -101,6 +108,13 @@ export class Grid {
       this.render();
     });
     el.addEventListener("dblclick", () => this.onOpen(Number(el.dataset.index)));
+    el.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      const idx = Number(el.dataset.index);
+      state.selected = idx;
+      this.render();
+      this.onContext(e.clientX, e.clientY, idx);
+    });
     this.canvas.appendChild(el);
     return el;
   }

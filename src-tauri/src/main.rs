@@ -27,6 +27,17 @@ async fn get_thumbnail(app: tauri::AppHandle, path: String, max: u32) -> Result<
     Ok(out.to_string_lossy().into_owned())
 }
 
+/// Reveal a file in Finder (selecting it).
+#[tauri::command]
+fn reveal_in_finder(path: String) -> Result<(), String> {
+    std::process::Command::new("open")
+        .arg("-R")
+        .arg(&path)
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| e.to_string())
+}
+
 /// Load persisted UI settings (last folder, recent folders).
 #[tauri::command]
 fn load_settings(app: tauri::AppHandle) -> Settings {
@@ -45,6 +56,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             scan_folder,
             get_thumbnail,
+            reveal_in_finder,
             load_settings,
             save_settings
         ])

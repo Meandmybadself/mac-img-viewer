@@ -1,11 +1,12 @@
 // App entry: wires the toolbar, grid, viewer, and keyboard together.
 import { open } from "@tauri-apps/plugin-dialog";
-import { state, setItems, applyOrder } from "./state";
-import { scanFolder, loadSettings, saveSettings } from "./ipc";
+import { state, setItems, applyOrder, shuffledOrder } from "./state";
+import { scanFolder, loadSettings, saveSettings, revealInFinder } from "./ipc";
 import { Grid } from "./grid/grid";
 import { TypeAhead } from "./grid/typeahead";
 import { Viewer } from "./viewer/viewer";
 import { setupKeys } from "./keys";
+import { showContextMenu } from "./contextmenu";
 const el = (id) => document.getElementById(id);
 const scroller = el("grid-scroller");
 const canvas = el("grid-canvas");
@@ -19,9 +20,19 @@ const typeaheadEl = el("typeahead");
 const recent = el("recent");
 const MAX_RECENT = 12;
 let settings = { lastFolder: null, recentFolders: [] };
-const grid = new Grid(scroller, canvas, (i) => viewer.open(i));
+function revealMenu(x, y, item) {
+    if (!item)
+        return;
+    showContextMenu(x, y, [{ label: "Reveal in Finder", action: () => void revealInFinder(item.path) }]);
+}
+const grid = new Grid(scroller, canvas, (i) => viewer.open(i), (x, y, i) => revealMenu(x, y, state.items[i]));
 const viewer = new Viewer(viewerView, stage, viewerInfo, () => grid.select(state.selected));
 const typeahead = new TypeAhead(typeaheadEl, (i) => grid.select(i));
+// Right-click in the viewer reveals the current item.
+stage.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    revealMenu(e.clientX, e.clientY, state.items[state.selected]);
+});
 async function openFolder() {
     const dir = await open({ directory: true, multiple: false });
     if (!dir || Array.isArray(dir))
@@ -77,22 +88,20 @@ recent.addEventListener("change", () => {
 const sortKey = el("sort-key");
 sortKey.addEventListener("change", () => {
     state.sortKey = sortKey.value;
-    state.shuffled = false;
     syncToolbar();
     reorder();
 });
 const sortDir = el("sort-dir");
 sortDir.addEventListener("click", () => {
     state.sortAsc = !state.sortAsc;
-    state.shuffled = false;
     syncToolbar();
     reorder();
 });
+// Shuffle starts a looping slideshow (it no longer reorders the grid).
 const shuffle = el("shuffle");
 shuffle.addEventListener("click", () => {
-    state.shuffled = !state.shuffled;
-    syncToolbar();
-    reorder();
+    if (state.items.length > 0)
+        viewer.startSlideshow(shuffledOrder(state.items.length));
 });
 const thumbSize = el("thumb-size");
 thumbSize.addEventListener("input", () => {
@@ -106,7 +115,6 @@ function setThumbSize(delta) {
 }
 function syncToolbar() {
     sortDir.textContent = state.sortAsc ? "↑ Asc" : "↓ Desc";
-    shuffle.classList.toggle("active", state.shuffled);
 }
 syncToolbar();
 setupKeys({ grid, viewer, typeahead, openViewer: (i) => viewer.open(i), setThumbSize });

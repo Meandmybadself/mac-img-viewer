@@ -2,6 +2,7 @@
 import { state } from "../state";
 import { assetUrl } from "../ipc";
 import { apply, setMode, zoomBy } from "./zoom";
+const SLIDESHOW_MS = 10_000;
 export class Viewer {
     constructor(view, stage, info, onClose) {
         this.el = null;
@@ -9,6 +10,14 @@ export class Viewer {
         this.natH = 0;
         this.z = { mode: "fit", scale: 1, tx: 0, ty: 0 };
         this.loop = false;
+        // Navigation playlist: `order` holds indices into state.items; `pos` is the
+        // position within it. Sequential viewing uses the natural order; a shuffle
+        // slideshow uses a shuffled order and auto-advances on a timer.
+        this.order = [];
+        this.pos = 0;
+        this.slideshow = false;
+        this.paused = false;
+        this.timer = 0;
         this.view = view;
         this.stage = stage;
         this.info = info;
@@ -19,26 +28,81 @@ export class Viewer {
     get isOpen() {
         return !this.view.classList.contains("hidden");
     }
+    /** Open a single item for normal (sequential) viewing. */
     open(index) {
-        state.selected = index;
+        this.slideshow = false;
+        this.stopTimer();
+        this.order = state.items.map((_, i) => i);
+        this.pos = index;
         this.view.classList.remove("hidden");
-        this.load();
+        this.sync();
+    }
+    /** Start a looping shuffle slideshow over `order` (indices into state.items). */
+    startSlideshow(order) {
+        if (order.length === 0)
+            return;
+        this.slideshow = true;
+        this.paused = false;
+        this.order = order;
+        this.pos = 0;
+        this.view.classList.remove("hidden");
+        this.sync();
+        this.restartTimer();
     }
     close() {
+        this.stopTimer();
+        this.slideshow = false;
         this.teardownMedia();
         this.view.classList.add("hidden");
         this.onClose();
     }
     next() {
-        if (state.selected < state.items.length - 1) {
-            state.selected++;
-            this.load();
-        }
+        this.step(1);
     }
     prev() {
-        if (state.selected > 0) {
-            state.selected--;
-            this.load();
+        this.step(-1);
+    }
+    step(delta) {
+        const n = this.order.length;
+        if (n === 0)
+            return;
+        const at = this.pos + delta;
+        if (at < 0 || at >= n) {
+            if (!this.slideshow)
+                return; // clamp when not looping
+            this.pos = (at + n) % n; // wrap during the slideshow
+        }
+        else {
+            this.pos = at;
+        }
+        this.sync();
+        if (this.slideshow && !this.paused)
+            this.restartTimer();
+    }
+    /** Point state.selected at the current playlist position and load it. */
+    sync() {
+        state.selected = this.order[this.pos];
+        this.load();
+    }
+    /** Pause/resume slideshow auto-advance (no-op outside a slideshow). */
+    toggleAutoAdvance() {
+        if (!this.slideshow)
+            return;
+        this.paused = !this.paused;
+        if (this.paused)
+            this.stopTimer();
+        else
+            this.restartTimer();
+        this.updateInfo();
+    }
+    restartTimer() {
+        this.stopTimer();
+        this.timer = window.setTimeout(() => this.step(1), SLIDESHOW_MS);
+    }
+    stopTimer() {
+        if (this.timer) {
+            clearTimeout(this.timer);
+            this.timer = 0;
         }
     }
     // --- media loading ---
@@ -121,14 +185,6 @@ export class Viewer {
             this.el.loop = this.loop;
         this.updateInfo();
     }
-    togglePlay() {
-        if (this.el instanceof HTMLVideoElement) {
-            if (this.el.paused)
-                this.el.play().catch(() => { });
-            else
-                this.el.pause();
-        }
-    }
     enablePan() {
         let dragging = false;
         let lastX = 0;
@@ -162,6 +218,7 @@ export class Viewer {
             return;
         const pct = Math.round(this.z.scale * 100);
         const loop = item.kind === "video" ? ` · loop ${this.loop ? "on" : "off"}` : "";
-        this.info.textContent = `${item.name}  (${state.selected + 1}/${state.items.length}) · ${pct}%${loop}`;
+        const show = this.slideshow ? ` · slideshow${this.paused ? " (paused)" : ""}` : "";
+        this.info.textContent = `${item.name}  (${this.pos + 1}/${this.order.length}) · ${pct}%${loop}${show}`;
     }
 }

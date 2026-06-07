@@ -21,6 +21,10 @@ export async function getThumbnail(path, max) {
     thumbUrlCache.set(key, url);
     return url;
 }
+/** Reveal a file in Finder. */
+export function revealInFinder(path) {
+    return invoke("reveal_in_finder", { path });
+}
 export function loadSettings() {
     return invoke("load_settings");
 }

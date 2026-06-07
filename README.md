@@ -9,7 +9,8 @@ A Mac-only, high-performance image & video viewer built with **Tauri 2** (Rust c
 - Local thumbnail cache (`~/Library/Caches/com.meandmybadself.imgviewer/thumbnails/`) keyed by path + mtime + size, so re-browsing a network share is instant.
 - **Scroll-aware loading** — thumbnail generation follows the viewport: scroll fast and it abandons work for cells you flew past and prioritizes where you landed.
 - Sort by **name** or **modified**, ascending/descending.
-- **Shuffle** mode.
+- **Shuffle slideshow** — a looping, auto-advancing (10 s) slideshow in random order; `Space` pauses/resumes.
+- **Reveal in Finder** via right-click (grid or viewer).
 - Finder-style **type-to-search**: just start typing a filename to jump to it.
 - Adjustable thumbnail size.
 - **Remembers** the last folder (reopens on launch) and keeps a **recent folders** menu.
@@ -21,9 +22,11 @@ A Mac-only, high-performance image & video viewer built with **Tauri 2** (Rust c
 
 ## Keyboard
 
-**Grid:** arrows = move · `Home`/`End` = first/last · `Enter` = open · type = search · `⌘ +`/`⌘ -` = thumbnail size
+**Grid:** arrows = move · `Home`/`End` = first/last · `Enter` or `Space` = open fullscreen · type = search · `⌘ +`/`⌘ -` = thumbnail size · right-click = Reveal in Finder
 
-**Viewer:** `Esc` = back · `←`/`→` = prev/next · `+`/`-` = zoom · `0` = fit · `9` = fill · `1` = actual · `L` = loop · `Space` = play/pause
+**Viewer:** `Esc` = back · `←`/`→` = prev/next · `+`/`-` = zoom · `0` = fit · `9` = fill · `1` = actual · `L` = loop · `Space` = pause/resume slideshow · right-click = Reveal in Finder
+
+**Shuffle** starts a looping slideshow that auto-advances every 10 s; press `Space` to pause/resume.
 
 ## Develop
 

@@ -8,7 +8,7 @@ const PAD = 16;
 const LABEL_H = 28;
 const BUFFER_ROWS = 2;
 export class Grid {
-    constructor(scroller, canvas, onOpen) {
+    constructor(scroller, canvas, onOpen, onContext) {
         this.cols = 1;
         this.rowH = 0;
         this.cellW = 0;
@@ -20,6 +20,7 @@ export class Grid {
         this.scroller = scroller;
         this.canvas = canvas;
         this.onOpen = onOpen;
+        this.onContext = onContext;
         this.scroller.addEventListener("scroll", () => this.scheduleRender(), { passive: true });
         new ResizeObserver(() => this.relayout()).observe(this.scroller);
     }
@@ -86,6 +87,13 @@ export class Grid {
             this.render();
         });
         el.addEventListener("dblclick", () => this.onOpen(Number(el.dataset.index)));
+        el.addEventListener("contextmenu", (e) => {
+            e.preventDefault();
+            const idx = Number(el.dataset.index);
+            state.selected = idx;
+            this.render();
+            this.onContext(e.clientX, e.clientY, idx);
+        });
         this.canvas.appendChild(el);
         return el;
     }

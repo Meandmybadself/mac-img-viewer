@@ -28,11 +28,12 @@ Rust is installed via rustup; ensure `$HOME/.cargo/bin` is on `PATH`.
 src/                      Frontend (TypeScript, no framework)
   main.ts                 Entry: toolbar wiring, folder open, startup restore
   ipc.ts                  Typed wrappers over Tauri `invoke` + thumbnail URL memo
-  state.ts                App state + sort/shuffle ordering
+  state.ts                App state + sort ordering + shuffled slideshow order
+  contextmenu.ts          Minimal right-click menu (Reveal in Finder)
   grid/grid.ts            Virtualized thumbnail grid (DOM cell recycling)
   grid/thumbqueue.ts      Viewport-prioritized thumbnail request scheduler
   grid/typeahead.ts       Finder-style type-to-search
-  viewer/viewer.ts        Full media viewer (img/video, loop, play/pause)
+  viewer/viewer.ts        Full media viewer (img/video, loop, shuffle slideshow)
   viewer/zoom.ts          Fit/fill/actual + keyboard zoom + pan math
 
 src-tauri/                Backend (Rust)

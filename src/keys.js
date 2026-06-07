@@ -42,7 +42,7 @@ function viewerKeys(e, a) {
             a.viewer.toggleLoop();
             break;
         case " ":
-            a.viewer.togglePlay();
+            a.viewer.toggleAutoAdvance();
             break;
         default: return;
     }
@@ -86,6 +86,9 @@ function gridKeys(e, a) {
         case "Enter":
             a.openViewer(sel);
             break;
+        case " ":
+            a.openViewer(sel);
+            break; // Finder-style Quick Look
         default:
             // Single printable character → Finder-style type-ahead.
             if (e.key.length === 1 && state.items.length > 0) {

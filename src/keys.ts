@@ -31,7 +31,7 @@ function viewerKeys(e: KeyboardEvent, a: KeyActions): void {
     case "9": a.viewer.setZoom("fill"); break;
     case "1": a.viewer.setZoom("actual"); break;
     case "l": case "L": a.viewer.toggleLoop(); break;
-    case " ": a.viewer.togglePlay(); break;
+    case " ": a.viewer.toggleAutoAdvance(); break;
     default: return;
   }
   e.preventDefault();
@@ -62,6 +62,7 @@ function gridKeys(e: KeyboardEvent, a: KeyActions): void {
     case "Home": a.grid.select(0); break;
     case "End": a.grid.select(state.items.length - 1); break;
     case "Enter": a.openViewer(sel); break;
+    case " ": a.openViewer(sel); break; // Finder-style Quick Look
     default:
       // Single printable character → Finder-style type-ahead.
       if (e.key.length === 1 && state.items.length > 0) {
